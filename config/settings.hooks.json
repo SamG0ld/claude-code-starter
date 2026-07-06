@@ -40,6 +40,15 @@
         ]
       },
       {
+        "matcher": "Write|Edit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $HOME/.claude/scripts/hooks/block_vault_writes.js"
+          }
+        ]
+      },
+      {
         "matcher": "Bash|WebFetch",
         "hooks": [
           {
@@ -112,6 +121,15 @@
           {
             "type": "command",
             "command": "node $HOME/.claude/scripts/hooks/session-end-obsidian.js"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $HOME/.claude/scripts/hooks/session-end.js"
           }
         ]
       }
@@ -208,6 +226,15 @@
           {
             "type": "command",
             "command": "node $HOME/.claude/scripts/hooks/check-console-log.js"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $HOME/.claude/scripts/hooks/evaluate-session.js"
           }
         ]
       }
