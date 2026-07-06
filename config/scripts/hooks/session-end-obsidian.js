@@ -25,11 +25,13 @@ const path = require("path");
 const fs = require("fs");
 const {
   getProjectRoot,
+  getGitMainRoot,
   getDateString,
   getTimeString,
   readStdinJson,
   ensureDir,
   readFile,
+  runCommand,
   log,
 } = require("../lib/utils");
 const {
@@ -171,11 +173,43 @@ function parseTranscript(transcriptPath) {
 }
 
 /**
- * Build status markdown from parsed transcript
+ * Best-effort current branch for cwd (worktree-aware label).
  */
-function buildStatusContent(parsed, sessionId, projectName) {
+function getBranch(cwd) {
+  const r = runCommand(`git -C "${cwd}" rev-parse --abbrev-ref HEAD`);
+  return r.success && r.output ? r.output.trim() : null;
+}
+
+/**
+ * Build the worktree/branch label for the session heading. Shows the cwd
+ * basename, prefixed "worktree: " when cwd is a linked worktree (its basename
+ * differs from the main checkout's), plus the branch if known.
+ */
+function buildSessionLabel(cwd) {
+  const resolvedCwd = path.resolve(cwd);
+  const base = path.basename(resolvedCwd);
+  const mainRoot = getGitMainRoot(cwd);
+  // A linked worktree is a SIBLING of the main checkout, not a descendant — so
+  // cwd is "a worktree" only when it sits outside the main root. A plain
+  // subdirectory of the main repo is under mainRoot and must not be labeled one.
+  const isWorktree =
+    mainRoot &&
+    resolvedCwd !== mainRoot &&
+    !resolvedCwd.startsWith(mainRoot + path.sep);
+  const branch = getBranch(cwd);
+  const name = isWorktree ? `worktree: ${base}` : base;
+  return branch ? `${name} @ ${branch}` : name;
+}
+
+/**
+ * Build status markdown from parsed transcript.
+ * Status.md is a fresh snapshot (overwritten each session); the date-headed
+ * session label records which worktree/branch last wrote it.
+ */
+function buildStatusContent(parsed, sessionId, projectName, cwd) {
   const today = getDateString();
   const shortId = sessionId ? sessionId.slice(-8) : "unknown";
+  const label = buildSessionLabel(cwd);
 
   // Build completed list from concrete actions
   const completed = [];
@@ -233,22 +267,14 @@ function buildStatusContent(parsed, sessionId, projectName) {
   ].join("\n");
 
   const body = [
-    "# Status",
+    `# Status  (${projectName})`,
     "",
-    "## Last Session",
-    `- **Date:** ${today}`,
-    `- **Session ID:** ${shortId}`,
+    `## ${today}  (session ${shortId}) — ${label}`,
     "",
     "### Completed",
     completedList,
     "",
-    "### In Progress",
-    "- (update manually or in next session)",
-    "",
-    "### Next Up",
-    "- (update manually or in next session)",
-    "",
-    "### Gotchas",
+    "### In Progress / Next Up / Gotchas",
     "- (update manually or in next session)",
     "",
     "### Session Requests",
@@ -513,7 +539,7 @@ async function main() {
 
   // Write status
   ensureDir(statusDir);
-  const content = buildStatusContent(parsed, sessionId, obsidianFolder);
+  const content = buildStatusContent(parsed, sessionId, obsidianFolder, cwd);
   fs.writeFileSync(statusFile, content, "utf8");
   log(`[Obsidian] Updated ${DEV_DIR}/${obsidianFolder}/Status.md`);
 
