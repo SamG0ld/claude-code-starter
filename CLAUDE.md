@@ -34,8 +34,8 @@ Portable Claude Code configuration — agents, commands, rules, hooks, skills, a
 | Component | Count |
 |-----------|-------|
 | Agents | 14 |
-| Commands | 21 |
-| Hooks (lifecycle scripts) | 17 |
+| Commands | 10 |
+| Hooks (lifecycle scripts) | 18 |
 | Rules | 7 |
 | Contexts | 3 |
 | Skills (bundled) | 1 (`security-scan`) |

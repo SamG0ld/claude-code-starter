@@ -64,6 +64,7 @@ Why: AI attribution in git history affects IP ownership and can impact company v
 - Match existing style even if you'd write it differently.
 - If you notice unrelated dead code or bugs, mention it rather than deleting it.
 - Remove only the orphans (imports, vars) your own changes created. Leave pre-existing dead code alone unless asked.
+- Other Claude sessions may be running in parallel. Never enter or modify another session's worktree or branch; work only in your own.
 
 ### New context does not change scope
 When the user gives you new information mid-task, use it. Facts, corrections, and clarifications: incorporate them and keep working. Acting on correct information the user just gave you is the normal case, not re-scoping.
@@ -72,6 +73,9 @@ Stop and re-confirm only when new info would genuinely expand or redesign the wo
 
 ### Verify state, don't assume
 Before a destructive or irreversible operation, verify the facts you're about to act on, especially those from sources that go stale (memory snapshots, auto-loaded session context, the auto-loaded `currentDate`, old notes). For time-bound actions (burn-in cutoffs, retention windows), get today's actual date (`date` / `Get-Date`), compare to the recorded cutoff, and cite both. What the user tells you in the current conversation is not a stale source; take it at face value.
+
+### Corrections stick
+When the user corrects a value, command, or approach, restate the correction and use it from then on; never silently revert to the pre-correction version. If an approach fails twice on the same error, stop and ask instead of trying workaround variants.
 
 ### Fix the broken thing first
 If something is broken (a script, the harness, the build), restore working state before doing anything else, including saving memories, updating docs, or filing tech debt. Capture lessons after the system works again, not instead of fixing it.

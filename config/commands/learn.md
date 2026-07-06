@@ -64,6 +64,7 @@ Create a skill file at `~/.claude/skills/learned/[pattern-name].md`:
 
 ## Notes
 
+- Simple facts and preferences belong in native auto-memory (`~/.claude/projects/<project>/memory/`), not here. /learn is for reusable techniques worth syncing across machines via git.
 - Don't extract trivial fixes (typos, simple syntax errors)
 - Don't extract one-time issues (specific API outages, etc.)
 - Focus on patterns that will save time in future sessions

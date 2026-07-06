@@ -4,10 +4,11 @@
 
 Pick by tier, not version number. Use the latest model in each tier; check Anthropic's current model list for live IDs.
 
-- **Fable** (top tier, deepest capability): main interactive sessions, and the hardest reasoning, research, and long-horizon agentic work.
-- **Opus** (deep-reasoning tier): architecture, planning, and security analysis; the pinned tier for the heavyweight agents.
+- **Opus** (top tier, deepest capability): main interactive sessions, the hardest reasoning and long-horizon agentic work, and the pinned tier for the heavyweight agents.
 - **Sonnet** (strong coding tier): code review, database work, TDD, general coding throughput.
 - **Haiku** (cheap, fast worker tier): frequently-invoked worker agents and mechanical tasks.
+
+If a tier above Opus is available on the current plan (e.g. Fable/Mythos-class), use it for main interactive sessions; the agent pins below don't change.
 
 ### How this is applied
 
@@ -16,7 +17,7 @@ Models are pinned per-agent in each `.md` frontmatter (e.g. `model: sonnet`). Cu
 - **Sonnet**: code-reviewer, database-reviewer, tdd-guide, semgrep-triager
 - **Haiku**: build-error-resolver, doc-updater, e2e-runner, refactor-cleaner, semgrep-scanner
 
-No agents are pinned to Fable today; the main interactive session runs Fable, agents top out at Opus.
+The main interactive session and the heavyweight agents both run Opus; nothing is pinned above it.
 
 Precedence (per [Claude Code docs](https://code.claude.com/docs/en/agents.md#choose-a-model)): `CLAUDE_CODE_SUBAGENT_MODEL` env var, then per-call `model:` param, then agent frontmatter, then parent session model. Claude Code does not auto-downgrade subagents; tiering is explicit via frontmatter.
 

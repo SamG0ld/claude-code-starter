@@ -14,6 +14,7 @@
 - **tmux reminder**: Suggests tmux for long-running commands (npm, pnpm, yarn, cargo, etc.)
 - **git push review**: Warns before `git push`
 - **context guard**: Warns when context window is getting full before destructive ops
+- **vault-write guard**: Blocks non-MCP filesystem writes to an Obsidian vault (opt-in via `OBSIDIAN_VAULT`; no-ops if unset)
 
 ### PostToolUse
 - **PR creation log**: Logs PR URL after `gh pr create`
@@ -23,11 +24,13 @@
 
 ### SessionStart / SessionEnd / PreCompact
 - **session-start**: Loads project knowledge from configured sources (e.g. Obsidian vault if `OBSIDIAN_VAULT` is set)
-- **session-end-obsidian**: Writes status, extracts insights, appends to monthly logs
+- **session-end-obsidian**: Writes status (worktree/branch-labeled), extracts insights, appends to monthly logs
+- **session-end**: Writes a local session backup to the project's `.claude/sessions/` if Obsidian is unavailable
 - **pre-compact**: Saves state and provides compaction hints before context compression
 
 ### Stop
 - **console.log audit**: Checks all modified files for `console.log` before the session ends
+- **session evaluation**: Extracts learnable-pattern candidates from the session transcript (feeds `/learn`)
 
 ## Auto-Accept Permissions
 

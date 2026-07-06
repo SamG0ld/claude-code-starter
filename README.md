@@ -7,9 +7,9 @@ An opinionated configuration layer for [Claude Code](https://claude.ai/code) tha
 | Component | Count | What it does |
 |-----------|-------|-------------|
 | **Agents** | 14 | Specialized sub-agents for planning, code review, TDD, security analysis, architecture, adversarial review |
-| **Commands** | 21 | Slash commands like `/tdd`, `/code-review`, `/orchestrate`, `/challenge`, `/audit-injection` for opinionated workflows |
+| **Commands** | 10 | Slash commands like `/ship`, `/challenge`, `/audit-injection`, `/security-scan`, `/learn` for opinionated workflows |
 | **Rules** | 7 | Coding style, security, testing, and git workflow standards enforced across all sessions |
-| **Hooks** | 17 | Auto-formatting, type-checking, context freshness guard, session persistence, MCP tool-poisoning warnings, indirect-injection taint gate |
+| **Hooks** | 18 | Auto-formatting, type-checking, context freshness guard, session persistence, vault-write guard, MCP tool-poisoning warnings, indirect-injection taint gate |
 | **Skills** | 2+ | Security scanning skill + your own learned patterns via `/learn` |
 | **Contexts** | 3 | Switch between dev, research, and review modes |
 | **Agent-safety tooling** | 3 | MCP tool-poisoning scanner, indirect-injection taint gate, retrospective injection audit |
@@ -23,7 +23,7 @@ Claude Code ships with agents, slash commands, hooks, and memory out of the box.
 - **Session persistence** — Session hooks save context so the next session can pick up where you left off.
 - **Continuous learning** — Run `/learn` after solving a non-trivial problem. The pattern is extracted and saved as a skill file that persists across sessions and machines via git.
 - **Auto-formatting and type-checking** — After every edit, Prettier formats and `tsc` type-checks automatically. Issues are caught before they compound.
-- **Quality-gated orchestration** — `/orchestrate` chains agents together with automatic quality gates between phases. If blockers are found, it fixes and re-checks before proceeding.
+- **The ship-loop** — `/ship` runs a disciplined end-to-end flow: scope lock, ground-truth git pre-flight, isolated worktree, gated implement, review, rebase, squash-merge, and cleanup. Built to be safe when multiple sessions run in parallel.
 - **Agent-security tooling (beyond code security)** — Most of the security layer here reviews the code Claude *writes*. This adds defenses for the *agent itself*: a SHA-256 MCP tool-poisoning scanner (catches rug-pulls / hidden-instruction tool descriptions / cross-server shadowing), a taint-tracking sink gate that asks for confirmation before an outbound action once untrusted web/email/chat content has entered the session, and `/audit-injection` for a retrospective sweep of past transcripts. These are **advisory checkpoints, not a tamper-proof perimeter** — fail-open and ask-only by design, so they raise the cost of an attack and surface the dangerous moment without bricking a session.
 - **Cross-platform** — Works on macOS and Windows. Setup scripts handle the differences.
 
@@ -41,18 +41,18 @@ cd ~/Dev/claude-code-starter
 # Restart Claude Code to pick up changes
 ```
 
-That's it. You now have 14 agents, 21 commands, and 17 hooks active. Re-run with `--dry-run` (`-DryRun` on PowerShell) to preview changes before applying.
+That's it. You now have 14 agents, 10 commands, and 18 hooks active. Re-run with `--dry-run` (`-DryRun` on PowerShell) to preview changes before applying.
 
 ## What this adds over vanilla Claude Code
 
 | Capability | Claude Code (built-in) | With this starter |
 |-----------|----------------------|-------------------|
 | Agents | General-purpose | 14 specialized agents with model-tier routing |
-| Slash commands | Built-in basics | 21 additional workflow commands (`/tdd`, `/orchestrate`, `/challenge`, `/audit-injection`, etc.) |
-| Hooks | Framework exists | 17 pre-configured hooks (auto-format, type-check, context guard, session persistence, MCP poisoning warnings, injection taint gate) |
+| Slash commands | Built-in basics | 10 additional workflow commands (`/ship`, `/challenge`, `/audit-injection`, `/security-scan`, etc.) |
+| Hooks | Framework exists | 18 pre-configured hooks (auto-format, type-check, context guard, session persistence, vault-write guard, MCP poisoning warnings, injection taint gate) |
 | Session memory | Memory system | Session hooks that save/restore context automatically |
 | Pattern learning | Skills system | `/learn` extracts and saves reusable patterns via git |
-| Multi-agent workflows | Manual | `/orchestrate` chains agents with quality gates; `/challenge` fan-out adversarial review |
+| Multi-agent workflows | Manual | `/challenge` fans out adversarial reviewers; `/ship` runs a gated end-to-end ship-loop |
 | Prompt-injection / MCP defense | None | MCP tool-poisoning scanner, taint-tracking sink gate, retrospective injection audit (advisory, fail-open) |
 | Rules | Project-level CLAUDE.md | 7 opinionated rules (style, security, testing, git) |
 | Settings install | Manual | Surgical merge of hooks block; preserves your `model`, `enabledPlugins`, etc. |
@@ -82,16 +82,15 @@ Specialized sub-agents launched via the Agent tool. Each has a focused prompt an
 
 ### Slash commands
 
-Type `/` in Claude Code to see all available commands. Key ones:
+Type `/` in Claude Code to see all available commands. Key ones (basics like TDD, code review, and build-fixing are now covered by native Claude Code features, so they've been pruned here):
 
-- **`/tdd`** — Write tests first, then implement. Enforces 80%+ coverage.
-- **`/code-review`** — Review code for quality, security, and maintainability
-- **`/orchestrate`** — Run a multi-agent pipeline (plan → implement → review → security)
+- **`/ship`** — Run the full ship-loop: scope lock, ground-truth git pre-flight, isolated worktree, gated implement, review, rebase, squash-merge, cleanup
 - **`/challenge`** — Fan out three adversarial reviewers (Skeptic / Contrarian / Missing-Evidence Hunter) against a claim or research output, then synthesize a HELD / CONTESTED / OVERTURNED verdict
 - **`/learn`** — Extract a reusable pattern from the current session
+- **`/handoff`** — Write a structured handoff note before `/clear` or a rewind
 - **`/security-scan`** — Scan for vulnerabilities with regex fallback + static analysis
 - **`/audit-injection`** — Retrospective indirect-prompt-injection sweep of session transcripts + data-at-rest (inbound email, web-clipped notes). Read-only tripwire.
-- **`/build-fix`** — Resolve build and type errors with minimal diffs
+- **`/update-codemaps`** / **`/update-docs`** — Regenerate codemaps and documentation
 
 ### Hooks
 
@@ -103,6 +102,7 @@ Hooks run automatically at specific lifecycle points:
 | `pre-bash-tmux-suggest.js` | Before Bash | Suggests tmux for long-running commands |
 | `pre-bash-git-push.js` | Before Bash | Warns before git push |
 | `context-guard.js` | Before Edit/Write/Bash | Warns when context window is getting full |
+| `block_vault_writes.js` | Before Write/Edit/NotebookEdit/Bash | Blocks non-MCP filesystem writes to an Obsidian vault (opt-in via `OBSIDIAN_VAULT`; no-ops if unset) |
 | `pre-tool-taint-gate.js` | Before Bash/WebFetch/send-MCPs | Asks for confirmation before an outbound/exfil action when the session is tainted by untrusted content (**ships disabled by default** via `TAINT_GATE_DISABLE=1`; remove that env entry in `settings.hooks.json` to enable) |
 | `post-edit-format.js` | After Edit | Auto-formats with Prettier |
 | `post-edit-typecheck.js` | After Edit (.ts/.tsx) | Runs `tsc --noEmit` |
@@ -113,7 +113,8 @@ Hooks run automatically at specific lifecycle points:
 | `evaluate-session.js` | On Stop | Signals pattern extraction for long sessions |
 | `session-start.js` | Session Start | Loads project knowledge (6 files, 30KB budget) |
 | `session-start-mcp-scan.js` | Session Start | Replays unresolved MCP tool-poisoning findings and refreshes the SHA-256 pin baseline in the background (`MCP_SCAN_DISABLE=1` to disable) |
-| `session-end-obsidian.js` | Session End | Saves status, extracts insights, writes monthly logs |
+| `session-end-obsidian.js` | Session End | Saves status (worktree/branch-labeled), extracts insights, writes monthly logs |
+| `session-end.js` | Session End | Writes a local session file to the project's `.claude/sessions/` as a backup if Obsidian is unavailable |
 | `pre-compact.js` | Before Compact | Saves state before context compression |
 
 ### Rules
