@@ -62,7 +62,7 @@ function rmrf(p) {
   }
 }
 function withTmp(fn) {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), "caa-projroot-"));
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ccs-projroot-"));
   try {
     fn(base);
   } finally {
@@ -75,9 +75,9 @@ function withTmp(fn) {
 //    no git, no filesystem). Exercises the resolution-order logic directly.
 // ===========================================================================
 
-const DEV = path.resolve(path.join(os.tmpdir(), "caa-projroot-fixture-dev"));
+const DEV = path.resolve(path.join(os.tmpdir(), "ccs-projroot-fixture-dev"));
 const P = (...segs) => path.join(DEV, ...segs);
-const PARENTS = new Set(["shc"]);
+const PARENTS = new Set(["mono"]);
 
 function resolve(cwd, { git = () => null, marker = () => null } = {}) {
   return _resolveProjectRoot(cwd, {
@@ -91,25 +91,25 @@ function resolve(cwd, { git = () => null, marker = () => null } = {}) {
 console.log("# decision matrix (_resolveProjectRoot, injected probes)");
 
 test("main repo → itself", () => {
-  const root = P("defcon-defacement");
+  const root = P("webapp");
   assert.strictEqual(resolve(root, { git: () => root }), root);
 });
 
 test("sibling worktree → main root", () => {
-  const main = P("defcon-defacement");
-  const wt = P("defcon-defacement-featX");
+  const main = P("webapp");
+  const wt = P("webapp-featX");
   // git resolves a worktree's common-dir parent to the MAIN root
   assert.strictEqual(resolve(wt, { git: () => main }), main);
 });
 
 test("subdir of worktree → main root", () => {
-  const main = P("defcon-defacement");
-  const sub = P("defcon-defacement-featX", "src", "deep");
+  const main = P("webapp");
+  const sub = P("webapp-featX", "src", "deep");
   assert.strictEqual(resolve(sub, { git: () => main }), main);
 });
 
 test("no-git + CLAUDE.md → marker dir", () => {
-  const proj = P("jobs", "secstudy");
+  const proj = P("group", "feature");
   assert.strictEqual(
     resolve(proj, { git: () => null, marker: () => proj }),
     proj,
@@ -117,17 +117,17 @@ test("no-git + CLAUDE.md → marker dir", () => {
 });
 
 test("own top-level git repo → itself", () => {
-  const root = P("jobhunt");
+  const root = P("apiserver");
   assert.strictEqual(resolve(root, { git: () => root }), root);
 });
 
-test("SHC/website as its own git repo → SHC/website", () => {
-  const root = P("SHC", "website");
+test("Mono/website as its own git repo → Mono/website", () => {
+  const root = P("Mono", "website");
   assert.strictEqual(resolve(root, { git: () => root }), root);
 });
 
-test("SHC child, no git, no marker → allowlist backstop split", () => {
-  const cwd = P("SHC", "website");
+test("Mono child, no git, no marker → allowlist backstop split", () => {
+  const cwd = P("Mono", "website");
   assert.strictEqual(resolve(cwd, { git: () => null, marker: () => null }), cwd);
 });
 
@@ -136,24 +136,24 @@ test("DEV_ROOT itself → null", () => {
 });
 
 test("outside any DEV_ROOT → null", () => {
-  const outside = path.resolve(path.join(os.tmpdir(), "caa-elsewhere", "proj"));
+  const outside = path.resolve(path.join(os.tmpdir(), "ccs-elsewhere", "proj"));
   assert.strictEqual(resolve(outside, { git: () => outside }), null);
 });
 
 test("git root above DEV_ROOT is rejected → falls through to fallback", () => {
   // e.g. a stray .git one level up; mainRoot would be DEV's parent.
-  const cwd = P("jobhunt");
+  const cwd = P("apiserver");
   const bogus = path.dirname(DEV);
-  assert.strictEqual(resolve(cwd, { git: () => bogus }), P("jobhunt"));
+  assert.strictEqual(resolve(cwd, { git: () => bogus }), P("apiserver"));
 });
 
 test("non-container nested, no git, no marker → first segment (fallback)", () => {
-  // 'jobs' is NOT in PARENT_DIRS, so without a marker it collapses to 'jobs'.
+  // 'group' is NOT in PARENT_DIRS, so without a marker it collapses to 'group'.
   // (Dropping a CLAUDE.md into the child is the documented fix.)
-  const cwd = P("jobs", "secstudy");
+  const cwd = P("group", "feature");
   assert.strictEqual(
     resolve(cwd, { git: () => null, marker: () => null }),
-    P("jobs"),
+    P("group"),
   );
 });
 
@@ -184,17 +184,17 @@ test("DEV_ROOT/CLAUDE.md is excluded (never collapse all of Dev)", () => {
 
 test("container dir (PARENT_DIRS) never claims its children", () => {
   withTmp((dev) => {
-    const shc = path.join(dev, "shc");
-    const website = path.join(shc, "website");
+    const mono = path.join(dev, "mono");
+    const website = path.join(mono, "website");
     mkdirp(website);
-    touch(path.join(shc, "CLAUDE.md")); // container marked, child not
+    touch(path.join(mono, "CLAUDE.md")); // container marked, child not
     assert.strictEqual(findMarkerDir(website, dev, PARENTS), null);
   });
 });
 
 test("child with its own CLAUDE.md under a container is returned", () => {
   withTmp((dev) => {
-    const website = path.join(dev, "shc", "website");
+    const website = path.join(dev, "mono", "website");
     mkdirp(website);
     touch(path.join(website, "CLAUDE.md"));
     assert.strictEqual(real(findMarkerDir(website, dev, PARENTS)), real(website));
