@@ -1,3 +1,7 @@
+---
+description: Extract reusable patterns from this session and save them as learned skills. Use after solving a non-trivial problem, finding a workaround for a tool or API quirk, or landing a debugging technique worth keeping. Prefer this over auto memory when the lesson should follow the user to their other machine, since learned skills sync via git and auto memory does not.
+---
+
 # /learn - Extract Reusable Patterns
 
 Analyze the current session and extract any patterns worth saving as skills.

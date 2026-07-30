@@ -1,3 +1,8 @@
+---
+description: Write a structured handoff note capturing current state, what was tried, what failed, and the next step. Use when ending a session mid-task, before /clear or a rewind, when context is filling up during unfinished work, or when the user says they are stopping for now, switching machines, or picking this up later.
+argument-hint: "[reason for the handoff]"
+---
+
 # Handoff Command
 
 Create a structured summary for session transitions, before rewind, or when handing off to another session.

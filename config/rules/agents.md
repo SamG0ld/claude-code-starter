@@ -23,6 +23,30 @@ Located in `~/.claude/agents/`. Each agent pins a model in its frontmatter match
 
 Override per-call by passing a `model:` param at invocation when an agent needs bumping for a specific task.
 
+## Built-in agents
+
+Claude Code ships two read-only agents that need no definition here. Prefer them over a
+custom agent when the task is plain search or planning, because they skip loading CLAUDE.md
+and git status and so start cheaper.
+
+| Agent | Use for |
+|-------|---------|
+| **Explore** | Broad fan-out search across many files or naming conventions when only the conclusion is needed. Specify breadth ("medium", "very thorough"). It locates code; it does not review it. |
+| **Plan** | Designing an implementation strategy: step-by-step plans, critical files, architectural trade-offs. |
+
+## Subagent vs agent team
+
+Both parallelize, but they differ structurally:
+
+- **Subagent**: own context, reports back to the caller, the lead manages all work. Lower
+  token cost because only a summary returns. This is the right default.
+- **Agent team**: fully independent sessions that message each other and share a task list.
+  Higher cost, since each teammate is a separate instance. Worth it when teammates need to
+  challenge each other or own separate pieces of a feature.
+
+Agent teams are experimental and disabled by default. Reach for one only when parallel
+subagents are already hitting context limits or genuinely need to talk to each other.
+
 ## When to reach for an agent
 Some work is worth delegating without being asked:
 - Complex feature request: **planner**

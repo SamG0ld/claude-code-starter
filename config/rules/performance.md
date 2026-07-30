@@ -8,7 +8,13 @@ Pick by tier, not version number. Use the latest model in each tier; check Anthr
 - **Sonnet** (strong coding tier): code review, database work, TDD, general coding throughput.
 - **Haiku** (cheap, fast worker tier): frequently-invoked worker agents and mechanical tasks.
 
-If a tier above Opus is available on the current plan (e.g. Fable/Mythos-class), use it for main interactive sessions; the agent pins below don't change.
+Opus is the top tier. If a tier above it ever ships on the current plan, use it for main interactive sessions; the agent pins below don't change either way.
+
+No `fallbackModel` is configured, deliberately. A silent downgrade to Sonnet mid-task is worse than a clear failure, so an Opus outage should stop work rather than quietly change the model underneath it.
+
+### Effort levels
+
+Effort is separate from model choice. `/effort` accepts `low`, `medium`, `high`, `xhigh`, `max`, or `auto`. Persist a default with `effortLevel` in `settings.json` so sessions start there without setting it each time. Drop to `low` for mechanical work (renames, formatting, mass find-and-replace) where reasoning depth buys nothing.
 
 ### How this is applied
 
@@ -24,6 +30,10 @@ Precedence (per [Claude Code docs](https://code.claude.com/docs/en/agents.md#cho
 ## Context Window Management
 
 Avoid the last 20% of the context window for large refactors, multi-file feature work, and debugging complex interactions. Single-file edits, independent utilities, doc updates, and simple fixes are less sensitive.
+
+`/context` shows what is actually loaded and where it went. Reach for it when behavior degrades rather than guessing.
+
+After two failed corrections on the same issue, the context holds more failed approaches than useful signal. `/clear` and restart with a prompt that incorporates what was learned; that beats a third correction.
 
 ## Plan Mode
 

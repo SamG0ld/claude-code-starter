@@ -14,6 +14,11 @@ allowed-tools:
 
 # Hybrid Security Scan
 
+> This file is the **executable pipeline** run by `/security-scan`. The companion
+> reference doc (architecture, coverage tiers, how to read provenance labels and
+> severity, limitations) is the `security-scan` skill at `skills/security-scan/SKILL.md`.
+> They are not duplicates; do not delete either.
+
 **Arguments:** $ARGUMENTS
 
 You are executing a hybrid security scanning pipeline. Parse the arguments and

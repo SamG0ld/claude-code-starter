@@ -11,6 +11,10 @@ description: >
 
 # Hybrid Security Scanning — Skill Reference
 
+> This file is the **reference doc**. The executable pipeline that actually runs the
+> scan lives at `config/commands/security-scan.md` and is invoked with `/security-scan`.
+> They are not duplicates; do not delete either.
+
 ## Architecture Overview
 
 The hybrid security scanner combines automated static analysis tools with

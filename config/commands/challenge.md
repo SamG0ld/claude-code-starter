@@ -1,3 +1,8 @@
+---
+description: Adversarially stress-test a claim, answer, or research conclusion using three parallel reviewers (provenance, counter-case, search completeness) plus a synthesis verdict. Use before acting on research output, before an irreversible or expensive decision, or when an answer looks too clean and confident for how hard the question was.
+argument-hint: "<claim or conclusion to stress-test>"
+---
+
 # /challenge — adversarial review of an answer or claim
 
 Runs an adversarial fan-out against a claim, answer, or research conclusion to flush out confidently-wrong content **before** acting on it. Three parallel reviewers attack the target from different angles (provenance, counter-case, search completeness), then a synthesis pass produces a single verdict.

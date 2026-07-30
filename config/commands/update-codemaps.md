@@ -1,3 +1,7 @@
+---
+description: Regenerate the docs/CODEMAPS/* files from current source. Use after a refactor that moved or renamed modules, after adding a subsystem, or when the codemaps no longer match the tree.
+---
+
 # Update Codemaps
 
 Analyze the codebase structure and update architecture documentation:

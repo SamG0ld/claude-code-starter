@@ -1,3 +1,7 @@
+---
+description: Sync documentation from source of truth (package.json scripts, env vars, API routes) into the README and guides. Use after changing build scripts, adding env vars, or when docs have drifted from the code.
+---
+
 # Update Documentation
 
 Sync documentation from source-of-truth:
