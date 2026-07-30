@@ -17,15 +17,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $HOME/.claude/scripts/hooks/pre-bash-tmux-suggest.js"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
             "command": "node $HOME/.claude/scripts/hooks/pre-bash-git-push.js"
           }
         ]
@@ -161,24 +152,6 @@
           {
             "type": "command",
             "command": "node $HOME/.claude/scripts/hooks/post-edit-format.js"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node $HOME/.claude/scripts/hooks/post-edit-typecheck.js"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node $HOME/.claude/scripts/hooks/post-edit-console-warn.js"
           }
         ]
       },
