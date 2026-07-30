@@ -8,9 +8,9 @@ An opinionated configuration layer for [Claude Code](https://claude.ai/code) tha
 |-----------|-------|-------------|
 | **Agents** | 14 | Specialized sub-agents for planning, code review, TDD, security analysis, architecture, adversarial review |
 | **Commands** | 10 | Slash commands like `/ship`, `/challenge`, `/audit-injection`, `/security-scan`, `/learn` for opinionated workflows |
-| **Rules** | 7 | Coding style, security, testing, and git workflow standards enforced across all sessions |
-| **Hooks** | 18 | Auto-formatting, type-checking, context freshness guard, session persistence, vault-write guard, MCP tool-poisoning warnings, indirect-injection taint gate |
-| **Skills** | 2+ | Security scanning skill + your own learned patterns via `/learn` |
+| **Rules** | 5 global + 4 dev-layer | Security, git workflow, agents, performance, and verification standards; code style / testing / patterns load only when Claude touches source files |
+| **Hooks** | 15 | Auto-formatting, context freshness guard, session persistence, vault-write guard, MCP tool-poisoning warnings, indirect-injection taint gate |
+| **Skills** | 2+ | Security-scanning and harness-setup skills + your own learned patterns via `/learn` |
 | **Contexts** | 3 | Switch between dev, research, and review modes |
 | **Agent-safety tooling** | 3 | MCP tool-poisoning scanner, indirect-injection taint gate, retrospective injection audit |
 
@@ -22,7 +22,7 @@ Claude Code ships with agents, slash commands, hooks, and memory out of the box.
 - **Context freshness guard** — Tracks tool calls and context window usage, warns at thresholds, and prevents degraded responses from stale context.
 - **Session persistence** — Session hooks save context so the next session can pick up where you left off.
 - **Continuous learning** — Run `/learn` after solving a non-trivial problem. The pattern is extracted and saved as a skill file that persists across sessions and machines via git.
-- **Auto-formatting and type-checking** — After every edit, Prettier formats and `tsc` type-checks automatically. Issues are caught before they compound.
+- **Auto-formatting** — After every edit, Prettier formats automatically, so style issues never compound. Type diagnostics are left to the native LSP plugins rather than a per-edit full-project typecheck.
 - **The ship-loop** — `/ship` runs a disciplined end-to-end flow: scope lock, ground-truth git pre-flight, isolated worktree, gated implement, review, rebase, squash-merge, and cleanup. Built to be safe when multiple sessions run in parallel.
 - **Agent-security tooling (beyond code security)** — Most of the security layer here reviews the code Claude *writes*. This adds defenses for the *agent itself*: a SHA-256 MCP tool-poisoning scanner (catches rug-pulls / hidden-instruction tool descriptions / cross-server shadowing), a taint-tracking sink gate that asks for confirmation before an outbound action once untrusted web/email/chat content has entered the session, and `/audit-injection` for a retrospective sweep of past transcripts. These are **advisory checkpoints, not a tamper-proof perimeter** — fail-open and ask-only by design, so they raise the cost of an attack and surface the dangerous moment without bricking a session.
 - **Cross-platform** — Works on macOS and Windows. Setup scripts handle the differences.
@@ -41,7 +41,7 @@ cd ~/Dev/claude-code-starter
 # Restart Claude Code to pick up changes
 ```
 
-That's it. You now have 14 agents, 10 commands, and 18 hooks active. Re-run with `--dry-run` (`-DryRun` on PowerShell) to preview changes before applying.
+That's it. You now have 14 agents, 10 commands, and 15 hooks active. Re-run with `--dry-run` (`-DryRun` on PowerShell) to preview changes before applying.
 
 ## What this adds over vanilla Claude Code
 
@@ -49,12 +49,12 @@ That's it. You now have 14 agents, 10 commands, and 18 hooks active. Re-run with
 |-----------|----------------------|-------------------|
 | Agents | General-purpose | 14 specialized agents with model-tier routing |
 | Slash commands | Built-in basics | 10 additional workflow commands (`/ship`, `/challenge`, `/audit-injection`, `/security-scan`, etc.) |
-| Hooks | Framework exists | 18 pre-configured hooks (auto-format, type-check, context guard, session persistence, vault-write guard, MCP poisoning warnings, injection taint gate) |
+| Hooks | Framework exists | 15 pre-configured hooks (auto-format, context guard, session persistence, vault-write guard, MCP poisoning warnings, injection taint gate) |
 | Session memory | Memory system | Session hooks that save/restore context automatically |
 | Pattern learning | Skills system | `/learn` extracts and saves reusable patterns via git |
 | Multi-agent workflows | Manual | `/challenge` fans out adversarial reviewers; `/ship` runs a gated end-to-end ship-loop |
 | Prompt-injection / MCP defense | None | MCP tool-poisoning scanner, taint-tracking sink gate, retrospective injection audit (advisory, fail-open) |
-| Rules | Project-level CLAUDE.md | 7 opinionated rules (style, security, testing, git) |
+| Rules | Project-level CLAUDE.md | 9 opinionated rules (security, git, agents, performance, verification; plus path-scoped style/testing/patterns) |
 | Settings install | Manual | Surgical merge of hooks block; preserves your `model`, `enabledPlugins`, etc. |
 
 ## What's included
@@ -99,14 +99,11 @@ Hooks run automatically at specific lifecycle points:
 | Hook | When | What it does |
 |------|------|-------------|
 | `pre-bash-dev-server.js` | Before Bash | Blocks dev server outside tmux (only when tmux is installed) |
-| `pre-bash-tmux-suggest.js` | Before Bash | Suggests tmux for long-running commands |
 | `pre-bash-git-push.js` | Before Bash | Warns before git push |
 | `context-guard.js` | Before Edit/Write/Bash | Warns when context window is getting full |
 | `block_vault_writes.js` | Before Write/Edit/NotebookEdit/Bash | Blocks non-MCP filesystem writes to an Obsidian vault (opt-in via `OBSIDIAN_VAULT`; no-ops if unset) |
 | `pre-tool-taint-gate.js` | Before Bash/WebFetch/send-MCPs | Asks for confirmation before an outbound/exfil action when the session is tainted by untrusted content (**ships disabled by default** via `TAINT_GATE_DISABLE=1`; remove that env entry in `settings.hooks.json` to enable) |
 | `post-edit-format.js` | After Edit | Auto-formats with Prettier |
-| `post-edit-typecheck.js` | After Edit (.ts/.tsx) | Runs `tsc --noEmit` |
-| `post-edit-console-warn.js` | After Edit | Warns about `console.log` |
 | `post-bash-pr-log.js` | After Bash | Logs PR URL after `gh pr create` |
 | `post-tool-taint-source.js` | After web/email/chat tools | Marks the session tainted after untrusted external content enters context |
 | `check-console-log.js` | On Stop | Audits all modified files for console.log |
@@ -119,15 +116,22 @@ Hooks run automatically at specific lifecycle points:
 
 ### Rules
 
-Loaded as project instructions in every session:
+Global rules (`config/rules/` → `~/.claude/rules/`) load as project instructions in every session:
+
+- **security** — No hardcoded secrets, input validation, OWASP awareness
+- **git-workflow** — Conventional commits, PR workflow
+- **agents** — When and how to use each agent, plus built-in vs custom agents
+- **performance** — Model selection strategy, effort levels, context window management
+- **verification** — Give the work a check that returns pass/fail; show evidence before claiming done
+
+Code-specific rules live in the [dev layer](#dev-layer-optional) (`dev/rules/`) and carry
+`paths:` frontmatter, so they load only when Claude actually touches matching source files
+instead of on every session:
 
 - **coding-style** — Immutability, small files, error handling
-- **security** — No hardcoded secrets, input validation, OWASP awareness
 - **testing** — 80% coverage minimum, TDD workflow
-- **git-workflow** — Conventional commits, PR workflow
-- **patterns** — API response format, repository pattern, custom hooks
-- **agents** — When and how to use each agent
-- **performance** — Model selection strategy, context window management
+- **patterns** — Skeleton-project pattern for new implementations
+- **hooks** — Reference for the hook wiring above (no `paths:`; loads for any session under `$DEV_ROOT`)
 
 ### Agent-safety tooling
 
@@ -175,11 +179,12 @@ See `examples/mcp-server-example.md` for the full pattern including registration
 
 ### Dev-layer (optional)
 
-If you keep multiple projects under one directory (e.g. `~/Dev/`), the starter can install a `CLAUDE.md` and `rules/hooks.md` at that parent so they apply to every child project automatically.
+If you keep multiple projects under one directory (e.g. `~/Dev/`), the starter can install a `CLAUDE.md` and a set of rules at that parent so they apply to every child project automatically.
 
 - **Default behavior**: setup uses the parent of this clone as `$DEV_ROOT` (e.g. `~/Dev` if you cloned into `~/Dev/claude-code-starter`).
 - **Override**: set the `DEV_ROOT` environment variable to point somewhere else, or unset/point at a non-existent path to skip dev-layer install entirely.
-- **What gets installed**: `dev/CLAUDE.md` → `$DEV_ROOT/CLAUDE.md`, `dev/rules/hooks.md` → `$DEV_ROOT/.claude/rules/hooks.md`. Both are symlinked, so editing the files in this repo updates them everywhere immediately.
+- **What gets installed**: `dev/CLAUDE.md` → `$DEV_ROOT/CLAUDE.md`, and every `dev/rules/*.md` → `$DEV_ROOT/.claude/rules/`. All symlinked, so editing the files in this repo updates them everywhere immediately.
+- **Adding a rule**: drop a `.md` file in `dev/rules/` and re-run setup — no script edit needed. Give it `paths:` frontmatter to load it only when Claude touches matching files; omit `paths:` to load it in every session under `$DEV_ROOT`. Setup also prunes symlinks whose target you deleted, leaving your own files alone.
 
 Edit `dev/CLAUDE.md` to tailor the multi-project workflow guidance to your setup.
 

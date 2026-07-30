@@ -9,7 +9,7 @@ Portable Claude Code configuration — agents, commands, rules, hooks, skills, a
 ## Where things live
 
 - **`config/CLAUDE.md`** — Global behavioral rules that get installed to `~/.claude/CLAUDE.md` (symlinked at install). Edit there to change rules that apply to all of Claude's sessions on a machine.
-- **`config/rules/`** — Project-instruction rule files (style, security, testing, etc.). Installed to `~/.claude/rules/`.
+- **`config/rules/`** — Global project-instruction rule files (security, git workflow, agents, performance, verification). Installed to `~/.claude/rules/`. Code-specific rules (style, testing, patterns) live in `dev/rules/` instead, path-scoped via `paths:` frontmatter.
 - **`config/commands/`** — Slash command definitions. Installed to `~/.claude/commands/`. Filename becomes command name.
 - **`config/scripts/hooks/`** — Lifecycle hooks (session start/end, pre/post tool use, the MCP tool-poisoning warn hook, and the indirect-injection taint gate). Installed to `~/.claude/scripts/hooks/`.
 - **`config/scripts/lib/`** — Shared utilities (`utils.js`, `obsidian.js`, `package-manager.js`, `mcp-scan.js`, `taint.js`).
@@ -17,8 +17,8 @@ Portable Claude Code configuration — agents, commands, rules, hooks, skills, a
 - **`config/data/`** — Static data files: `security-regex-patterns.json` (secret/vuln patterns), `mcp-poisoning-patterns.json` (tool-poisoning signature pack). Installed to `~/.claude/data/`.
 - **`config/settings.hooks.json`** — Canonical hooks + statusLine block, surgically merged into the user's `~/.claude/settings.json` by `merge-hooks-settings.js`.
 - **`agents/`** — Sub-agent prompts. Installed to `~/.claude/agents/`.
-- **`skills/`** — Static skills. `skills/security-scan/` is the only generic skill shipped; `config/skills/learned/` accumulates patterns from `/learn`.
-- **`dev/`** — Optional dev-layer files installed to `$DEV_ROOT` (parent of this repo) when present. Provides `$DEV_ROOT/CLAUDE.md` and `$DEV_ROOT/.claude/rules/hooks.md` for multi-project folders.
+- **`skills/`** — Static skills. `security-scan` and `harness-setup` are the generic skills shipped; `config/skills/learned/` accumulates patterns from `/learn`.
+- **`dev/`** — Optional dev-layer files installed to `$DEV_ROOT` (parent of this repo) when present. Provides `$DEV_ROOT/CLAUDE.md` plus every `dev/rules/*.md` at `$DEV_ROOT/.claude/rules/` for multi-project folders. Setup symlinks the whole glob, so a new rule file needs no script edit.
 - **`setup.sh` / `setup.ps1`** — Installers. Re-run after editing any of the above.
 
 ## Working in this repo
@@ -35,10 +35,10 @@ Portable Claude Code configuration — agents, commands, rules, hooks, skills, a
 |-----------|-------|
 | Agents | 14 |
 | Commands | 10 |
-| Hooks (lifecycle scripts) | 18 |
-| Rules | 7 |
+| Hooks (lifecycle scripts) | 15 |
+| Rules | 5 global (`config/rules/`) + 4 dev-layer (`dev/rules/`) |
 | Contexts | 3 |
-| Skills (bundled) | 1 (`security-scan`) |
+| Skills (bundled) | 2 (`security-scan`, `harness-setup`) |
 
 The `setup.sh` output reports actual counts at install time.
 
