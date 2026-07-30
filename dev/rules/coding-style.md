@@ -1,3 +1,9 @@
+---
+description: Code style conventions (immutability, file organization, error handling, input validation)
+paths:
+  - "**/*.{ts,tsx,js,jsx,mjs,cjs,py,go,rs,rb,java,php,cs,swift,kt,sql,sh,ps1}"
+---
+
 # Coding Style
 
 ## Immutability

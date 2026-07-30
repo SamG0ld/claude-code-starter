@@ -1,3 +1,9 @@
+---
+description: Skeleton-project pattern for starting new implementations
+paths:
+  - "**/*.{ts,tsx,js,jsx,mjs,cjs,py,go,rs,rb,java,php,cs,swift,kt,sql,sh,ps1}"
+---
+
 # Common Patterns
 
 ## Skeleton Projects
