@@ -107,9 +107,19 @@ fi
 # Skills (copy skill folders, but symlink learned/)
 if [ -d "$SCRIPT_DIR/skills" ]; then
   for skill_dir in "$SCRIPT_DIR/skills/"*/; do
+    [ -d "$skill_dir" ] || continue
     skill_name="$(basename "$skill_dir")"
     [ "$skill_name" = "learned" ] && continue
-    cp -r "$skill_dir" "$CLAUDE_DIR/skills/"
+    skill_dest="$CLAUDE_DIR/skills/$skill_name"
+    if [ "$DRY_RUN_FLAG" = "1" ]; then
+      echo "    WOULD install skill: $skill_name"
+    else
+      # Remove the destination first. `cp -r src/ dest/` copies the source *into*
+      # an existing dest/src rather than replacing it, which nested a fresh copy
+      # one level deeper on every run (skills/foo/foo/foo/...).
+      rm -rf "$skill_dest"
+      cp -r "$skill_dir" "$skill_dest"
+    fi
   done
   echo "  Installed skills"
 fi
@@ -269,10 +279,37 @@ if [ -d "$DEV_ROOT" ]; then
     "$SCRIPT_DIR/dev/CLAUDE.md" \
     "Dev-layer CLAUDE.md"
 
-  new_repo_symlink \
-    "$DEV_ROOT/.claude/rules/hooks.md" \
-    "$SCRIPT_DIR/dev/rules/hooks.md" \
-    "Dev-layer rules/hooks.md"
+  # Dev-layer rules. Symlink every *.md in dev/rules/ so adding a rule needs no
+  # edit here. Rules carrying `paths:` frontmatter load only when Claude touches
+  # matching files; rules without it load on every session under DEV_ROOT.
+  [ "$DRY_RUN_FLAG" = "1" ] || mkdir -p "$DEV_ROOT/.claude/rules"
+  for rule in "$SCRIPT_DIR"/dev/rules/*.md; do
+    [ -e "$rule" ] || continue
+    rule_name="$(basename "$rule")"
+    new_repo_symlink \
+      "$DEV_ROOT/.claude/rules/$rule_name" \
+      "$rule" \
+      "Dev-layer rules/$rule_name"
+  done
+
+  # Prune stale rule symlinks: only those pointing into this repo's dev/rules/
+  # whose target no longer exists. Leaves user-created files untouched.
+  for link in "$DEV_ROOT"/.claude/rules/*.md; do
+    [ -L "$link" ] || continue
+    target="$(readlink "$link")"
+    case "$target" in
+      */dev/rules/*)
+        if [ ! -e "$target" ]; then
+          if [ "$DRY_RUN_FLAG" = "1" ]; then
+            echo "  WOULD prune stale Dev-layer rule symlink: $(basename "$link")"
+          else
+            rm -f "$link"
+            echo "  Pruned stale Dev-layer rule symlink: $(basename "$link")"
+          fi
+        fi
+        ;;
+    esac
+  done
 else
   echo "  Skipped dev-layer symlinks (DEV_ROOT does not exist: $DEV_ROOT)"
 fi

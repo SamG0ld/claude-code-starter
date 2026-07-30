@@ -104,7 +104,16 @@ if (Test-Path "$ScriptDir\agents") {
 # Skills (copy skill folders, but symlink learned/)
 if (Test-Path "$ScriptDir\skills") {
     Get-ChildItem "$ScriptDir\skills" -Directory | Where-Object { $_.Name -ne "learned" } | ForEach-Object {
-        Copy-Item $_.FullName (Join-Path $ClaudeDir "skills\$($_.Name)") -Recurse -Force
+        $skillDest = Join-Path $ClaudeDir "skills\$($_.Name)"
+        if ($DryRun) {
+            Write-Host "    WOULD install skill: $($_.Name)"
+        } else {
+            # Remove the destination first. Copy-Item -Recurse copies the source
+            # *into* an existing directory rather than replacing it, which nested
+            # a fresh copy one level deeper on every run (skills/foo/foo/foo/...).
+            if (Test-Path $skillDest) { Remove-Item $skillDest -Recurse -Force }
+            Copy-Item $_.FullName $skillDest -Recurse -Force
+        }
     }
     Write-Host "  Installed skills"
 }
@@ -281,11 +290,35 @@ if (Test-Path $DevRoot) {
         -TargetPath (Join-Path $ScriptDir "dev\CLAUDE.md") `
         -Label "Dev-layer CLAUDE.md"
 
-    # Dev-layer rules/hooks.md symlink
-    New-RepoSymlink `
-        -LinkPath (Join-Path $DevRoot ".claude\rules\hooks.md") `
-        -TargetPath (Join-Path $ScriptDir "dev\rules\hooks.md") `
-        -Label "Dev-layer rules/hooks.md"
+    # Dev-layer rules. Symlink every *.md in dev\rules\ so adding a rule needs no
+    # edit here. Rules carrying `paths:` frontmatter load only when Claude touches
+    # matching files; rules without it load on every session under DEV_ROOT.
+    $devRulesDir = Join-Path $DevRoot ".claude\rules"
+    if (-not $DryRun -and -not (Test-Path $devRulesDir)) {
+        New-Item -ItemType Directory -Force -Path $devRulesDir | Out-Null
+    }
+    Get-ChildItem (Join-Path $ScriptDir "dev\rules\*.md") | ForEach-Object {
+        New-RepoSymlink `
+            -LinkPath (Join-Path $devRulesDir $_.Name) `
+            -TargetPath $_.FullName `
+            -Label "Dev-layer rules/$($_.Name)"
+    }
+
+    # Prune stale rule symlinks: only those pointing into this repo's dev\rules\
+    # whose target no longer exists. Leaves user-created files untouched.
+    Get-ChildItem $devRulesDir -Force -ErrorAction SilentlyContinue | Where-Object {
+        $_.Attributes -band [IO.FileAttributes]::ReparsePoint
+    } | ForEach-Object {
+        $linkTarget = $_.Target
+        if ($linkTarget -and ($linkTarget -match '[\\/]dev[\\/]rules[\\/]') -and -not (Test-Path $linkTarget)) {
+            if ($DryRun) {
+                Write-Host "  WOULD prune stale Dev-layer rule symlink: $($_.Name)"
+            } else {
+                Remove-Item $_.FullName -Force
+                Write-Host "  Pruned stale Dev-layer rule symlink: $($_.Name)"
+            }
+        }
+    }
 } else {
     Write-Host "  Skipped dev-layer symlinks (DEV_ROOT does not exist: $DevRoot)"
 }
